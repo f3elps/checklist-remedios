@@ -1,0 +1,13 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cuidi">
+  <!-- Cuidi: cápsula dentro de um coração. Coração usa currentColor (cor primária do tema). -->
+  <path
+    d="M32 56C32 56 8 42 8 24.5C8 15.4 15.1 9 22.8 9C27.2 9 30.4 11.2 32 14.2C33.6 11.2 36.8 9 41.2 9C48.9 9 56 15.4 56 24.5C56 42 32 56 32 56Z"
+    fill="currentColor" />
+  <!-- cápsula branca na diagonal -->
+  <g transform="rotate(-38 32 28)">
+    <rect x="20.5" y="22.5" width="23" height="11" rx="5.5" fill="#ffffff" />
+    <line x1="32" y1="22.5" x2="32" y2="33.5" stroke="currentColor" stroke-width="2" stroke-opacity="0.85" />
+    <rect x="20.5" y="22.5" width="11.5" height="11" rx="5.5" fill="#ffffff" />
+    <rect x="20.5" y="22.5" width="11.5" height="11" rx="5.5" fill="currentColor" fill-opacity="0.12" />
+  </g>
+</svg>
