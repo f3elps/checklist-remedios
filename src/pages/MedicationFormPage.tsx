@@ -7,7 +7,7 @@ import type { MedicationInput } from '@/lib/medications'
 export default function MedicationFormPage() {
   const navigate = useNavigate()
   const { id } = useParams()
-  const { data: meds } = useMedications()
+  const { data: meds, isLoading } = useMedications()
   const create = useCreateMedication()
   const update = useUpdateMedication()
   const editing = id ? meds?.find((m) => m.id === id) : undefined
@@ -27,10 +27,16 @@ export default function MedicationFormPage() {
     }
   }
 
+  if (id) {
+    if (isLoading) return <p className="text-muted">Carregando…</p>
+    if (!editing) return <p className="text-muted">Remédio não encontrado.</p>
+  }
+
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-bold">{id ? 'Editar remédio' : 'Novo remédio'}</h1>
       <MedicationForm
+        key={editing?.id ?? 'novo'}
         defaultValues={editing}
         onSubmit={onSubmit}
         submitting={create.isPending || update.isPending}

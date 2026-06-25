@@ -12,8 +12,8 @@ const schema = z.object({
   unit: z.string().min(1, 'Informe a unidade'),
   dose_amount: z.number().positive('Dose deve ser maior que 0'),
   schedule_type: z.enum(['vezes_por_dia', 'de_x_em_x_horas', 'horarios_fixos']),
-  per_day: z.number().int().min(1).optional(),
-  interval_hours: z.number().int().min(1).max(24).optional(),
+  per_day: z.number().int('Use um número inteiro').min(1, 'Mínimo 1').optional(),
+  interval_hours: z.number().int('Use um número inteiro').min(1, 'Mínimo 1').max(24, 'Máximo 24').optional(),
   times: z.string().optional(), // "08:00, 20:00"
   stock_quantity: z.number().min(0, 'Estoque não pode ser negativo'),
   start_date: z.string().min(1),
@@ -58,7 +58,7 @@ export function MedicationForm({
     const input: MedicationInput = {
       name: v.name, unit: v.unit, dose_amount: v.dose_amount,
       schedule_type: v.schedule_type, schedule_config: buildConfig(v),
-      stock_quantity: v.stock_quantity, start_date: v.start_date, notes: v.notes ?? null,
+      stock_quantity: v.stock_quantity, start_date: v.start_date, notes: v.notes?.trim() ? v.notes.trim() : null,
     }
     onSubmit(input)
   }
@@ -94,12 +94,14 @@ export function MedicationForm({
         <div>
           <Label htmlFor="per_day">Vezes por dia</Label>
           <Input id="per_day" type="number" {...register('per_day', { valueAsNumber: true })} />
+          {errors.per_day && <p className="text-error text-sm mt-1">{errors.per_day.message}</p>}
         </div>
       )}
       {type === 'de_x_em_x_horas' && (
         <div>
           <Label htmlFor="interval_hours">De quantas em quantas horas</Label>
           <Input id="interval_hours" type="number" {...register('interval_hours', { valueAsNumber: true })} />
+          {errors.interval_hours && <p className="text-error text-sm mt-1">{errors.interval_hours.message}</p>}
         </div>
       )}
       {type === 'horarios_fixos' && (
