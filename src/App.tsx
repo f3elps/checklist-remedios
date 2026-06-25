@@ -10,6 +10,7 @@ import Hoje from '@/pages/Hoje'
 import Remedios from '@/pages/Remedios'
 import Historico from '@/pages/Historico'
 import Configuracoes from '@/pages/Configuracoes'
+import MedicationFormPage from '@/pages/MedicationFormPage'
 
 export default function App() {
   return (
@@ -24,6 +25,8 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/" element={<Hoje />} />
           <Route path="/remedios" element={<Remedios />} />
+          <Route path="/remedios/novo" element={<MedicationFormPage />} />
+          <Route path="/remedios/:id/editar" element={<MedicationFormPage />} />
           <Route path="/historico" element={<Historico />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
         </Route>
