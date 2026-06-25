@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+coverage
+
+# Variáveis de ambiente (segredos) — nunca commitar
+.env
+.env.local
+.env.*.local
+*.local
+
+# Editor / OS
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea
