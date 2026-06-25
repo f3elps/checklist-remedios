@@ -1,32 +1,34 @@
-# React + TypeScript + Vite
+# Cuidi — Gestão de Remédios
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Cuidi é um PWA pessoal de gestão de remédios. Permite cadastrar medicamentos, registrar doses do dia a dia e consultar o histórico de adesão ao tratamento. O objetivo é ser simples, rápido e funcionar offline.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Vite + React + TypeScript** — build e desenvolvimento
+- **Tailwind CSS + shadcn/ui** — estilização e componentes
+- **Supabase** — banco de dados, autenticação e storage
+- **vite-plugin-pwa** — suporte offline e instalação como app
 
-## React Compiler
+## Comandos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install       # instala as dependências
+npm run dev       # inicia o servidor de desenvolvimento
+npm run test      # roda os testes (vitest)
+npm run build     # compila para produção (tsc + vite build)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Variáveis de ambiente
+
+Copie `.env.example` para `.env.local` e preencha as variáveis do Supabase:
+
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+## Documentação
+
+- **Especificações:** `docs/superpowers/specs/`
+- **Planos de implementação:** `docs/superpowers/plans/`
+- **Design (logo, tokens, guia visual):** `docs/design/`
