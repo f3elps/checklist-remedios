@@ -7,6 +7,8 @@ import {
   selectDue,
   selectMissed,
   isLowStock,
+  zonedTimeToUtc,
+  localDateISO,
   type MedRow,
   type DoseRow,
 } from '../_shared/schedule.ts'
@@ -36,13 +38,18 @@ interface PushSubRow {
   keys: { p256dh: string; auth: string }
 }
 
-async function sendEmail(to: string, subject: string, text: string): Promise<void> {
-  if (!RESEND_API_KEY) return
-  await fetch('https://api.resend.com/emails', {
+async function sendEmail(to: string, subject: string, text: string): Promise<boolean> {
+  if (!RESEND_API_KEY) return false
+  const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'content-type': 'application/json' },
     body: JSON.stringify({ from: RESEND_FROM, to, subject, text }),
   })
+  if (!res.ok) {
+    console.error('Resend falhou:', res.status, await res.text())
+    return false
+  }
+  return true
 }
 
 async function pushTo(subs: PushSubRow[], payload: unknown): Promise<number> {
@@ -116,33 +123,38 @@ Deno.serve(async () => {
     const title = 'Hora do remédio 💊'
     const body = `${med.name} — ${med.dose_amount} ${med.unit}`
 
+    let channel: 'push' | 'email' | null = null
     if (prof.push_enabled) {
       const { data: subs } = await admin
         .from('push_subscriptions')
         .select('endpoint, keys')
         .eq('user_id', dose.user_id)
-      summary.pushed += await pushTo((subs ?? []) as PushSubRow[], {
+      const n = await pushTo((subs ?? []) as PushSubRow[], {
         title,
         body,
         url: '/',
         tag: `dose-${dose.id}`,
       })
+      summary.pushed += n
+      if (n > 0) channel = 'push'
     }
     if (prof.email_enabled) {
       const { data: u } = await admin.auth.admin.getUserById(dose.user_id)
       const email = u.user?.email
-      if (email) {
-        await sendEmail(email, title, `${body}\n\nAbra o Cuidi para registrar.`)
+      if (email && (await sendEmail(email, title, `${body}\n\nAbra o Cuidi para registrar.`))) {
         summary.emailed++
+        if (!channel) channel = 'email'
       }
     }
-    await admin.from('notification_log').insert({
-      user_id: dose.user_id,
-      medication_id: med.id,
-      dose_id: dose.id,
-      type: 'lembrete_dose',
-      channel: 'push',
-    })
+    if (channel) {
+      await admin.from('notification_log').insert({
+        user_id: dose.user_id,
+        medication_id: med.id,
+        dose_id: dose.id,
+        type: 'lembrete_dose',
+        channel,
+      })
+    }
   }
 
   // 3) Marca perdidas (pendentes além da tolerância).
@@ -157,13 +169,12 @@ Deno.serve(async () => {
     if (!error) summary.missed++
   }
 
-  // 4) Estoque baixo, 1×/dia (dedupe pelo notification_log do dia).
-  const dayStart = new Date(now)
-  dayStart.setUTCHours(0, 0, 0, 0)
+  // 4) Estoque baixo, 1×/dia no fuso do dono (dedupe pelo notification_log do dia local).
   for (const m of meds) {
     if (!isLowStock(m)) continue
     const prof = profById.get(m.user_id)
     if (!prof) continue
+    const dayStart = zonedTimeToUtc(localDateISO(now, prof.timezone), '00:00', prof.timezone)
     const { data: sent } = await admin
       .from('notification_log')
       .select('id')
@@ -175,24 +186,30 @@ Deno.serve(async () => {
 
     const title = 'Estoque acabando 📦'
     const body = `${m.name} está quase no fim. Reponha o estoque.`
+    let channel: 'push' | 'email' | null = null
     if (prof.push_enabled) {
       const { data: subs } = await admin
         .from('push_subscriptions')
         .select('endpoint, keys')
         .eq('user_id', m.user_id)
-      await pushTo((subs ?? []) as PushSubRow[], { title, body, url: '/remedios' })
+      const n = await pushTo((subs ?? []) as PushSubRow[], { title, body, url: '/remedios' })
+      if (n > 0) channel = 'push'
     }
     if (prof.email_enabled) {
       const { data: u } = await admin.auth.admin.getUserById(m.user_id)
-      if (u.user?.email) await sendEmail(u.user.email, title, body)
+      if (u.user?.email && (await sendEmail(u.user.email, title, body))) {
+        if (!channel) channel = 'email'
+      }
     }
-    await admin.from('notification_log').insert({
-      user_id: m.user_id,
-      medication_id: m.id,
-      type: 'estoque_baixo',
-      channel: 'push',
-    })
-    summary.lowStock++
+    if (channel) {
+      await admin.from('notification_log').insert({
+        user_id: m.user_id,
+        medication_id: m.id,
+        type: 'estoque_baixo',
+        channel,
+      })
+      summary.lowStock++
+    }
   }
 
   return new Response(JSON.stringify(summary), { headers: { 'content-type': 'application/json' } })

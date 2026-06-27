@@ -90,7 +90,7 @@ export function zonedTimeToUtc(dateISO: string, hhmm: string, timeZone: string):
   return new Date(guess - offset)
 }
 
-function localDateISO(date: Date, timeZone: string): string {
+export function localDateISO(date: Date, timeZone: string): string {
   // en-CA formata como YYYY-MM-DD
   return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
 }
