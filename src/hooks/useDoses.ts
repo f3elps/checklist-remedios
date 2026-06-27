@@ -37,7 +37,7 @@ export function useMarkDose() {
     }): Promise<void> => {
       const { data: userData } = await supabase.auth.getUser()
       const user_id = userData.user?.id
-      const taken_at = action === 'tomato' ? new Date().toISOString() : null
+      const taken_at = action === 'tomado' ? new Date().toISOString() : null
       const { error } = await supabase
         .from('doses')
         .upsert(
@@ -52,7 +52,7 @@ export function useMarkDose() {
         )
       if (error) throw error
 
-      if (action === 'tomato') {
+      if (action === 'tomado') {
         const newStock = Math.max(0, medication.stock_quantity - medication.dose_amount)
         const { error: e2 } = await supabase
           .from('medications')
