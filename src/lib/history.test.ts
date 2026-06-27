@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { dayKeyLocal, groupDosesByDay, heatLevel, lastNDays, summarize } from './history'
 import type { Dose } from '@/lib/doses'
+import { scheduledAtFor } from '@/lib/doses'
 
 const dose = (over: Partial<Dose>): Dose => ({
   id: 'd', medication_id: 'm', user_id: 'u', scheduled_at: '2026-06-25T11:00:00.000Z',
@@ -10,6 +11,9 @@ const dose = (over: Partial<Dose>): Dose => ({
 describe('dayKeyLocal', () => {
   it('retorna yyyy-MM-dd', () => {
     expect(dayKeyLocal('2026-06-25T11:00:00.000Z')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+  it('faz round-trip estável com scheduledAtFor (mesmo dia local)', () => {
+    expect(dayKeyLocal(scheduledAtFor('2026-06-25', '08:00'))).toBe('2026-06-25')
   })
 })
 

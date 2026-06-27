@@ -7,8 +7,6 @@ import { useMedications } from '@/hooks/useMedications'
 import { useDosesRange } from '@/hooks/useDoses'
 import { lastNDays, summarize } from '@/lib/history'
 import { AdherenceHeatmap } from '@/components/history/AdherenceHeatmap'
-import { exportElementToPdf } from '@/lib/pdf'
-
 const DAYS = 91
 
 function todayISO(): string {
@@ -33,6 +31,7 @@ export default function Historico() {
   async function onExport() {
     if (!printRef.current) return
     try {
+      const { exportElementToPdf } = await import('@/lib/pdf')
       await exportElementToPdf(printRef.current, 'cuidi-historico.pdf')
     } catch {
       toast.error('Não foi possível gerar o PDF.')
