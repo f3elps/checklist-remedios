@@ -26,6 +26,7 @@ export async function getActiveSubscription(): Promise<PushSubscription | null> 
 }
 
 export async function subscribeToPush(vapidPublicKey: string): Promise<PushSubscription> {
+  if (!isPushSupported()) throw new Error('Push não suportado neste navegador.')
   const reg = await navigator.serviceWorker.ready
   const existing = await reg.pushManager.getSubscription()
   const sub =
@@ -46,7 +47,8 @@ export async function unsubscribeFromPush(): Promise<void> {
 }
 
 async function saveSubscription(sub: PushSubscription): Promise<void> {
-  const { data: u } = await supabase.auth.getUser()
+  const { data: u, error: authError } = await supabase.auth.getUser()
+  if (authError) throw authError
   const user_id = u.user?.id
   if (!user_id) throw new Error('Sem usuário autenticado para salvar a subscription.')
   const json = sub.toJSON()

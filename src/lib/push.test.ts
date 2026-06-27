@@ -41,6 +41,10 @@ describe('urlBase64ToUint8Array', () => {
   it('decodifica base64url para bytes', () => {
     expect(Array.from(urlBase64ToUint8Array('AAAA'))).toEqual([0, 0, 0])
   })
+
+  it('trata os caracteres base64url - e _', () => {
+    expect(Array.from(urlBase64ToUint8Array('-_-'))).toEqual([251, 255])
+  })
 })
 
 describe('subscribeToPush', () => {
