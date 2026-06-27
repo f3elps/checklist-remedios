@@ -1,4 +1,5 @@
 import { dosesPerDay, type ScheduleType, type ScheduleConfig } from '@/lib/medications'
+import type { Medication } from '@/lib/medications'
 
 export type DoseStatus = 'pendente' | 'tomado' | 'pulado' | 'perdido'
 
@@ -39,4 +40,34 @@ export function doseTimesForDay(type: ScheduleType, cfg: ScheduleConfig): string
 
 export function scheduledAtFor(dayISO: string, hhmm: string): string {
   return new Date(`${dayISO}T${hhmm}:00`).toISOString()
+}
+
+export interface DoseSlot {
+  medication: Medication
+  time: string
+  scheduled_at: string
+  status: DoseStatus
+  overdue: boolean
+  doseId: string | null
+}
+
+export function buildTodaySlots(
+  meds: Medication[],
+  doses: Dose[],
+  dayISO: string,
+  nowMs: number,
+): DoseSlot[] {
+  const byKey = new Map(doses.map((d) => [`${d.medication_id}@${d.scheduled_at}`, d]))
+  const slots: DoseSlot[] = []
+  for (const m of meds) {
+    if (!m.active) continue
+    for (const time of doseTimesForDay(m.schedule_type, m.schedule_config)) {
+      const scheduled_at = scheduledAtFor(dayISO, time)
+      const dose = byKey.get(`${m.id}@${scheduled_at}`)
+      const status: DoseStatus = dose?.status ?? 'pendente'
+      const overdue = status === 'pendente' && new Date(scheduled_at).getTime() < nowMs
+      slots.push({ medication: m, time, scheduled_at, status, overdue, doseId: dose?.id ?? null })
+    }
+  }
+  return slots.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
 }
