@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   zonedTimeToUtc,
   doseTimesForDay,
+  dosesPerDay,
   materializeWindow,
   selectDue,
   selectMissed,
@@ -26,6 +27,11 @@ describe('zonedTimeToUtc', () => {
   it('08:00 em America/Sao_Paulo (UTC-3) vira 11:00Z', () => {
     expect(zonedTimeToUtc('2026-06-27', '08:00', 'America/Sao_Paulo').toISOString()).toBe(
       '2026-06-27T11:00:00.000Z',
+    )
+  })
+  it('00:00 em America/Sao_Paulo (UTC-3) vira 03:00Z do mesmo dia', () => {
+    expect(zonedTimeToUtc('2026-06-28', '00:00', 'America/Sao_Paulo').toISOString()).toBe(
+      '2026-06-28T03:00:00.000Z',
     )
   })
 })
@@ -80,6 +86,11 @@ describe('selectDue / selectMissed', () => {
     const missed = selectMissed(doses, now, 120).map((d) => d.id)
     expect(missed).toEqual(['b'])
   })
+  it('dose exatamente no limite da tolerância não é "due"', () => {
+    const doses = [mk('edge', -120)] // -120min == -tolerance
+    expect(selectDue(doses, now, 120).map((d) => d.id)).toEqual([])
+    expect(selectMissed(doses, now, 120).map((d) => d.id)).toEqual(['edge'])
+  })
 })
 
 describe('isLowStock', () => {
@@ -89,5 +100,13 @@ describe('isLowStock', () => {
   })
   it('false quando há folga', () => {
     expect(isLowStock({ ...baseMed, stock_quantity: 60 })).toBe(false) // 30 dias
+  })
+})
+
+describe('dosesPerDay / doseTimesForDay (vezes_por_dia)', () => {
+  it('vezes_por_dia conta as doses e espalha entre 08:00 e 20:00', () => {
+    expect(dosesPerDay('vezes_por_dia', { per_day: 3 })).toBe(3)
+    expect(doseTimesForDay('vezes_por_dia', { per_day: 1 })).toEqual(['08:00'])
+    expect(doseTimesForDay('vezes_por_dia', { per_day: 2 })).toEqual(['08:00', '20:00'])
   })
 })

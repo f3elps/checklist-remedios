@@ -75,7 +75,9 @@ function tzOffsetMs(date: Date, timeZone: string): number {
   })
   const map: Record<string, number> = {}
   for (const p of dtf.formatToParts(date)) if (p.type !== 'literal') map[p.type] = Number(p.value)
-  const asUTC = Date.UTC(map.year, map.month - 1, map.day, map.hour === 24 ? 0 : map.hour, map.minute, map.second)
+  const h = map.hour === 24 ? 0 : map.hour
+  const dayAdj = map.hour === 24 ? 1 : 0
+  const asUTC = Date.UTC(map.year, map.month - 1, map.day + dayAdj, h, map.minute, map.second)
   return asUTC - date.getTime()
 }
 
