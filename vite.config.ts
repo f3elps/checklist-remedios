@@ -7,8 +7,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
-      includeAssets: ['icons/*.png'],
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+      },
+      includeAssets: ['icons/*.png', 'favicon.svg'],
       manifest: {
         name: 'Cuidi',
         short_name: 'Cuidi',
