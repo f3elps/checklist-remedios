@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { LogOut } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { BottomNav } from './BottomNav'
+import { ProfileThemeSync } from '@/providers/ProfileThemeSync'
 
 export function AppShell() {
   return (
@@ -12,6 +13,7 @@ export function AppShell() {
           <LogOut size={20} />
         </button>
       </header>
+      <ProfileThemeSync />
       <main className="px-4"><Outlet /></main>
       <BottomNav />
     </div>
