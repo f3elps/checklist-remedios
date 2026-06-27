@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useDosesForDay, useMarkDose } from './useDoses'
+import { useDosesForDay, useMarkDose, useDosesRange } from './useDoses'
 import type { Medication } from '@/lib/medications'
 import { supabase } from '@/lib/supabase'
 
@@ -109,5 +109,28 @@ describe('useMarkDose', () => {
     const [payload] = upsert.mock.calls[0]
     expect(payload).toMatchObject({ status: 'pulado', taken_at: null })
     expect(update).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useDosesRange (range query test)
+// ---------------------------------------------------------------------------
+describe('useDosesRange', () => {
+  const order = vi.fn().mockResolvedValue({ data: [{ id: 'd1' }], error: null })
+  const lt = vi.fn(() => ({ order }))
+  const gte = vi.fn(() => ({ lt }))
+  const select = vi.fn(() => ({ gte }))
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedSupabase.from.mockReturnValue({ select } as never)
+  })
+
+  it('busca doses no intervalo informado', async () => {
+    const { result } = renderHook(() => useDosesRange('2026-06-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z'), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toEqual([{ id: 'd1' }])
+    expect(gte).toHaveBeenCalledWith('scheduled_at', '2026-06-01T00:00:00.000Z')
+    expect(lt).toHaveBeenCalledWith('scheduled_at', '2026-07-01T00:00:00.000Z')
   })
 })

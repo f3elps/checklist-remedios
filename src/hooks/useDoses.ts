@@ -25,6 +25,22 @@ export function useDosesForDay(dayISO: string) {
   })
 }
 
+export function useDosesRange(startISO: string, endISO: string) {
+  return useQuery({
+    queryKey: ['doses', 'range', startISO, endISO],
+    queryFn: async (): Promise<Dose[]> => {
+      const { data, error } = await supabase
+        .from('doses')
+        .select('*')
+        .gte('scheduled_at', startISO)
+        .lt('scheduled_at', endISO)
+        .order('scheduled_at')
+      if (error) throw error
+      return (data ?? []) as Dose[]
+    },
+  })
+}
+
 export function useMarkDose() {
   const qc = useQueryClient()
   return useMutation({
