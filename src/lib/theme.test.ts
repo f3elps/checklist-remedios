@@ -22,4 +22,11 @@ describe('theme', () => {
     expect(el.getAttribute('data-theme')).toBe('verde')
     expect(el.classList.contains('dark')).toBe(false)
   })
+
+  it('cada tema tem uma cor primary em hsl', () => {
+    for (const t of THEMES) {
+      expect(t.primary).toMatch(/^hsl\(/)
+    }
+    expect(THEMES.find((t) => t.slug === 'verde')?.primary).toBe('hsl(160 60% 40%)')
+  })
 })

@@ -1,12 +1,12 @@
 export type ThemeSlug = 'verde' | 'azul' | 'violeta' | 'rosa' | 'ambar' | 'teal'
 
-export const THEMES: { slug: ThemeSlug; label: string }[] = [
-  { slug: 'verde', label: 'Verde Cuidado' },
-  { slug: 'azul', label: 'Azul Sereno' },
-  { slug: 'violeta', label: 'Violeta' },
-  { slug: 'rosa', label: 'Rosa' },
-  { slug: 'ambar', label: 'Âmbar' },
-  { slug: 'teal', label: 'Teal' },
+export const THEMES: { slug: ThemeSlug; label: string; primary: string }[] = [
+  { slug: 'verde', label: 'Verde Cuidado', primary: 'hsl(160 60% 40%)' },
+  { slug: 'azul', label: 'Azul Sereno', primary: 'hsl(212 72% 48%)' },
+  { slug: 'violeta', label: 'Violeta', primary: 'hsl(262 52% 56%)' },
+  { slug: 'rosa', label: 'Rosa', primary: 'hsl(338 68% 56%)' },
+  { slug: 'ambar', label: 'Âmbar', primary: 'hsl(35 90% 48%)' },
+  { slug: 'teal', label: 'Teal', primary: 'hsl(184 64% 40%)' },
 ]
 
 const SLUGS = new Set(THEMES.map(t => t.slug))
