@@ -40,11 +40,12 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   const url = (event.notification.data as { url?: string } | null)?.url ?? '/'
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ('focus' in client) {
-          ;(client as WindowClient).navigate(url)
-          return (client as WindowClient).focus()
-        }
+      const matching = clients.find((c) => c.url === url)
+      if (matching) return (matching as WindowClient).focus()
+      const open = clients.find((c) => 'focus' in c)
+      if (open) {
+        ;(open as WindowClient).navigate(url)
+        return (open as WindowClient).focus()
       }
       return self.clients.openWindow(url)
     }),
