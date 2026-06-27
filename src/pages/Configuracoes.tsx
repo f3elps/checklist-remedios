@@ -2,6 +2,7 @@ import { toast } from 'sonner'
 import { THEMES, type ThemeSlug } from '@/lib/theme'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useProfile, useUpdateProfile } from '@/hooks/useProfile'
+import { usePushSubscription } from '@/hooks/usePushSubscription'
 import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
@@ -10,6 +11,7 @@ export default function Configuracoes() {
   const { theme, dark, setTheme, setDark } = useTheme()
   const { data: profile } = useProfile()
   const update = useUpdateProfile()
+  const push = usePushSubscription()
 
   async function persist(values: Parameters<typeof update.mutateAsync>[0]) {
     try {
@@ -28,8 +30,26 @@ export default function Configuracoes() {
     persist({ dark_mode: v })
   }
 
+  async function togglePush(v: boolean) {
+    try {
+      if (v) {
+        const ok = await push.enable()
+        if (!ok) {
+          toast.error('Permita as notificações no navegador para ativar o push.')
+          return
+        }
+        await persist({ push_enabled: true })
+        toast.success('Lembretes por push ativados.')
+      } else {
+        await push.disable()
+        await persist({ push_enabled: false })
+      }
+    } catch {
+      toast.error('Não foi possível atualizar o push.')
+    }
+  }
+
   const emailOn = profile?.email_enabled ?? true
-  const pushOn = profile?.push_enabled ?? true
 
   return (
     <section className="space-y-6">
@@ -66,9 +86,18 @@ export default function Configuracoes() {
         <div className="flex items-center justify-between">
           <div>
             <span>Lembretes por push</span>
-            <p className="text-muted text-sm">A ativação completa do push acontece ao instalar o app.</p>
+            <p className="text-muted text-sm">
+              {push.supported
+                ? 'Avisos na hora da dose, mesmo com o app fechado.'
+                : 'Seu navegador não suporta push. Instale o app na tela inicial.'}
+            </p>
           </div>
-          <Switch checked={pushOn} onCheckedChange={(v) => persist({ push_enabled: v })} aria-label="Lembretes por push" />
+          <Switch
+            checked={push.subscribed}
+            onCheckedChange={togglePush}
+            disabled={!push.supported || push.loading}
+            aria-label="Lembretes por push"
+          />
         </div>
       </Card>
 
