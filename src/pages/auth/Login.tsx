@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { Logo } from '@/components/Logo'
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -29,8 +30,11 @@ export default function Login() {
   return (
     <div className="min-h-full grid place-items-center p-6">
       <Card className="w-full max-w-sm p-6 shadow-card">
-        <h1 className="text-2xl font-bold mb-1">Cuidi</h1>
-        <p className="text-muted mb-6">Entre para cuidar dos seus remédios.</p>
+        <div className="flex flex-col items-center text-center mb-6">
+          <Logo className="h-14 w-14 text-primary" />
+          <h1 className="text-2xl font-bold mt-3">Cuidi</h1>
+          <p className="text-muted">Entre para cuidar dos seus remédios.</p>
+        </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="email">E-mail</Label>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { Logo } from '@/components/Logo'
 
 const schema = z.object({
   name: z.string().min(1, 'Informe seu nome'),
@@ -34,7 +35,10 @@ export default function Signup() {
   return (
     <div className="min-h-full grid place-items-center p-6">
       <Card className="w-full max-w-sm p-6 shadow-card">
-        <h1 className="text-2xl font-bold mb-6">Criar conta</h1>
+        <div className="flex flex-col items-center text-center mb-6">
+          <Logo className="h-14 w-14 text-primary" />
+          <h1 className="text-2xl font-bold mt-3">Criar conta</h1>
+        </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="name">Nome</Label>
