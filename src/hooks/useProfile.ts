@@ -32,6 +32,7 @@ export function useUpdateProfile() {
     mutationFn: async (values: Partial<Profile>): Promise<void> => {
       const { data: u } = await supabase.auth.getUser()
       const uid = u.user?.id
+      if (!uid) throw new Error('Sem usuário autenticado.')
       const { error } = await supabase.from('profiles').update(values).eq('id', uid)
       if (error) throw error
     },

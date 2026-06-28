@@ -53,6 +53,7 @@ export function useMarkDose() {
     }): Promise<void> => {
       const { data: userData } = await supabase.auth.getUser()
       const user_id = userData.user?.id
+      if (!user_id) throw new Error('Sem usuário autenticado.')
       const taken_at = action === 'tomado' ? new Date().toISOString() : null
       const { error } = await supabase
         .from('doses')
