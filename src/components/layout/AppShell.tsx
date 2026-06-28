@@ -1,8 +1,10 @@
 import { Outlet } from 'react-router-dom'
+import { Suspense } from 'react'
 import { LogOut } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { BottomNav } from './BottomNav'
 import { ProfileThemeSync } from '@/providers/ProfileThemeSync'
+import { PageFallback } from './PageFallback'
 
 export function AppShell() {
   return (
@@ -14,7 +16,11 @@ export function AppShell() {
         </button>
       </header>
       <ProfileThemeSync />
-      <main className="px-4"><Outlet /></main>
+      <main className="px-4">
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
+      </main>
       <BottomNav />
     </div>
   )
