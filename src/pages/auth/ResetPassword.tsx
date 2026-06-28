@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -14,12 +15,13 @@ type Form = z.infer<typeof schema>
 
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const [expired, setExpired] = useState(false)
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<Form>({ resolver: zodResolver(schema) })
 
   async function onSubmit(v: Form) {
     const { error } = await supabase.auth.updateUser({ password: v.password })
-    if (error) { toast.error('Link expirado. Peça um novo.'); return }
+    if (error) { setExpired(true); toast.error('Link expirado. Peça um novo.'); return }
     toast.success('Senha redefinida!')
     navigate('/', { replace: true })
   }
@@ -35,6 +37,11 @@ export default function ResetPassword() {
             {errors.password && <p className="text-error text-sm mt-1">{errors.password.message}</p>}
           </div>
           <Button type="submit" className="w-full" disabled={isSubmitting}>Salvar</Button>
+          {expired && (
+            <Link to="/entrar" className="block text-center text-sm text-primary underline">
+              Voltar para o login
+            </Link>
+          )}
         </form>
       </Card>
     </div>
