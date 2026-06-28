@@ -8,6 +8,14 @@ declare const self: ServiceWorkerGlobalScope & {
 // Precache do app shell (a lista é injetada pelo vite-plugin-pwa no build).
 precacheAndRoute(self.__WB_MANIFEST)
 
+// Com registerType:'autoUpdate', ativa o SW novo na hora (sem precisar fechar todas as abas).
+self.addEventListener('install', () => {
+  self.skipWaiting()
+})
+self.addEventListener('activate', (event: ExtendableEvent) => {
+  event.waitUntil(self.clients.claim())
+})
+
 interface PushPayload {
   title?: string
   body?: string

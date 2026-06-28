@@ -49,4 +49,20 @@ describe('Configuracoes', () => {
     render(<Configuracoes />)
     expect(screen.getByRole('switch', { name: /lembretes por push/i })).toBeDisabled()
   })
+
+  it('desligar o push chama disable e persiste push_enabled false', async () => {
+    pushState.subscribed = true
+    render(<Configuracoes />)
+    await userEvent.click(screen.getByRole('switch', { name: /lembretes por push/i }))
+    expect(disable).toHaveBeenCalled()
+    expect(mutate).toHaveBeenCalledWith({ push_enabled: false })
+  })
+
+  it('se a permissão for negada (enable→false), não persiste push_enabled', async () => {
+    enable.mockResolvedValueOnce(false)
+    render(<Configuracoes />)
+    await userEvent.click(screen.getByRole('switch', { name: /lembretes por push/i }))
+    expect(enable).toHaveBeenCalled()
+    expect(mutate).not.toHaveBeenCalledWith({ push_enabled: true })
+  })
 })

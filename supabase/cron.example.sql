@@ -1,6 +1,7 @@
 -- Agendamento da Edge Function `tick` (rode no SQL Editor do projeto).
--- Troque <PROJECT_REF> e <SERVICE_ROLE_KEY> pelos valores reais (ver SETUP.md).
--- NÃO commite este arquivo preenchido — a service-role key é secreta.
+-- Troque <PROJECT_REF>, <SERVICE_ROLE_KEY> e <CRON_SECRET> pelos valores reais (ver SETUP.md).
+-- <CRON_SECRET> deve ser o MESMO valor setado no secret CRON_SECRET da função.
+-- NÃO commite este arquivo preenchido — a service-role key e o cron secret são secretos.
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
@@ -16,7 +17,8 @@ select cron.schedule(
     url    := 'https://<PROJECT_REF>.supabase.co/functions/v1/tick',
     headers:= jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
+      'x-cron-secret', '<CRON_SECRET>'
     ),
     body   := '{}'::jsonb
   );

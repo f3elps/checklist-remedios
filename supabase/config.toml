@@ -1,0 +1,9 @@
+# Cuidi — config do Supabase CLI (versionada).
+# Fixa o gate de autenticação da Edge Function `tick` no controle de versão,
+# para que ele não dependa só do default implícito da plataforma.
+project_id = "cuidi"
+
+[functions.tick]
+# tick roda com service-role e bypassa RLS — exija JWT válido na chamada.
+# A defesa principal é o header x-cron-secret (CRON_SECRET) checado dentro da função.
+verify_jwt = true

@@ -20,6 +20,9 @@ const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY')!
 const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:cuidi@exemplo.com'
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 const RESEND_FROM = Deno.env.get('RESEND_FROM') ?? 'Cuidi <onboarding@resend.dev>'
+// Segredo compartilhado com o cron (defesa em profundidade além do verify_jwt do config.toml).
+// Quando setado, só quem envia o header x-cron-secret correto pode disparar a corrida global.
+const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? ''
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
@@ -71,7 +74,11 @@ async function pushTo(subs: PushSubRow[], payload: unknown): Promise<number> {
   return sent
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  // Só o cron (que envia o x-cron-secret) pode disparar a corrida global com service-role.
+  if (CRON_SECRET && req.headers.get('x-cron-secret') !== CRON_SECRET) {
+    return new Response('Unauthorized', { status: 401 })
+  }
   const now = new Date()
   const summary = { materialized: 0, pushed: 0, emailed: 0, missed: 0, lowStock: 0 }
 
@@ -107,53 +114,63 @@ Deno.serve(async () => {
     .lte('scheduled_at', toISO)
 
   for (const dose of selectDue((windowDoses ?? []) as DoseRow[], now, DUE_TOLERANCE_MIN)) {
-    const med = medById.get(dose.medication_id)
-    const prof = profById.get(dose.user_id)
-    if (!med || !prof) continue
+    try {
+      const med = medById.get(dose.medication_id)
+      const prof = profById.get(dose.user_id)
+      if (!med || !prof) continue
 
-    // dedupe: já avisamos esta dose?
-    const { data: already } = await admin
-      .from('notification_log')
-      .select('id')
-      .eq('dose_id', dose.id)
-      .eq('type', 'lembrete_dose')
-      .limit(1)
-    if (already && already.length) continue
+      // dedupe: já avisamos esta dose?
+      const { data: already } = await admin
+        .from('notification_log')
+        .select('id')
+        .eq('dose_id', dose.id)
+        .eq('type', 'lembrete_dose')
+        .limit(1)
+      if (already && already.length) continue
 
-    const title = 'Hora do remédio 💊'
-    const body = `${med.name} — ${med.dose_amount} ${med.unit}`
+      const title = 'Hora do remédio 💊'
+      const body = `${med.name} — ${med.dose_amount} ${med.unit}`
 
-    let channel: 'push' | 'email' | null = null
-    if (prof.push_enabled) {
-      const { data: subs } = await admin
-        .from('push_subscriptions')
-        .select('endpoint, keys')
-        .eq('user_id', dose.user_id)
-      const n = await pushTo((subs ?? []) as PushSubRow[], {
-        title,
-        body,
-        url: '/',
-        tag: `dose-${dose.id}`,
-      })
-      summary.pushed += n
-      if (n > 0) channel = 'push'
-    }
-    if (prof.email_enabled) {
-      const { data: u } = await admin.auth.admin.getUserById(dose.user_id)
-      const email = u.user?.email
-      if (email && (await sendEmail(email, title, `${body}\n\nAbra o Cuidi para registrar.`))) {
-        summary.emailed++
-        if (!channel) channel = 'email'
+      let channel: 'push' | 'email' | null = null
+      if (prof.push_enabled) {
+        const { data: subs } = await admin
+          .from('push_subscriptions')
+          .select('endpoint, keys')
+          .eq('user_id', dose.user_id)
+        const n = await pushTo((subs ?? []) as PushSubRow[], {
+          title,
+          body,
+          url: '/',
+          tag: `dose-${dose.id}`,
+        })
+        summary.pushed += n
+        if (n > 0) channel = 'push'
       }
-    }
-    if (channel) {
-      await admin.from('notification_log').insert({
-        user_id: dose.user_id,
-        medication_id: med.id,
-        dose_id: dose.id,
-        type: 'lembrete_dose',
-        channel,
-      })
+      if (prof.email_enabled) {
+        const { data: u } = await admin.auth.admin.getUserById(dose.user_id)
+        const email = u.user?.email
+        if (email && (await sendEmail(email, title, `${body}\n\nAbra o Cuidi para registrar.`))) {
+          summary.emailed++
+          if (!channel) channel = 'email'
+        }
+      }
+      if (channel) {
+        // Upsert idempotente: o índice único (dose_id, type) impede log/aviso duplicado
+        // mesmo se dois ticks concorrentes passarem pelo dedupe SELECT acima.
+        await admin.from('notification_log').upsert(
+          {
+            user_id: dose.user_id,
+            medication_id: med.id,
+            dose_id: dose.id,
+            type: 'lembrete_dose',
+            channel,
+          },
+          { onConflict: 'dose_id,type', ignoreDuplicates: true },
+        )
+      }
+    } catch (err) {
+      // Uma dose com erro (e-mail inválido, getUserById transitório) não derruba o tick inteiro.
+      console.error('tick: erro ao avisar dose', dose.id, err)
     }
   }
 
@@ -174,41 +191,45 @@ Deno.serve(async () => {
     if (!isLowStock(m)) continue
     const prof = profById.get(m.user_id)
     if (!prof) continue
-    const dayStart = zonedTimeToUtc(localDateISO(now, prof.timezone), '00:00', prof.timezone)
-    const { data: sent } = await admin
-      .from('notification_log')
-      .select('id')
-      .eq('medication_id', m.id)
-      .eq('type', 'estoque_baixo')
-      .gte('sent_at', dayStart.toISOString())
-      .limit(1)
-    if (sent && sent.length) continue
+    try {
+      const dayStart = zonedTimeToUtc(localDateISO(now, prof.timezone), '00:00', prof.timezone)
+      const { data: sent } = await admin
+        .from('notification_log')
+        .select('id')
+        .eq('medication_id', m.id)
+        .eq('type', 'estoque_baixo')
+        .gte('sent_at', dayStart.toISOString())
+        .limit(1)
+      if (sent && sent.length) continue
 
-    const title = 'Estoque acabando 📦'
-    const body = `${m.name} está quase no fim. Reponha o estoque.`
-    let channel: 'push' | 'email' | null = null
-    if (prof.push_enabled) {
-      const { data: subs } = await admin
-        .from('push_subscriptions')
-        .select('endpoint, keys')
-        .eq('user_id', m.user_id)
-      const n = await pushTo((subs ?? []) as PushSubRow[], { title, body, url: '/remedios' })
-      if (n > 0) channel = 'push'
-    }
-    if (prof.email_enabled) {
-      const { data: u } = await admin.auth.admin.getUserById(m.user_id)
-      if (u.user?.email && (await sendEmail(u.user.email, title, body))) {
-        if (!channel) channel = 'email'
+      const title = 'Estoque acabando 📦'
+      const body = `${m.name} está quase no fim. Reponha o estoque.`
+      let channel: 'push' | 'email' | null = null
+      if (prof.push_enabled) {
+        const { data: subs } = await admin
+          .from('push_subscriptions')
+          .select('endpoint, keys')
+          .eq('user_id', m.user_id)
+        const n = await pushTo((subs ?? []) as PushSubRow[], { title, body, url: '/remedios' })
+        if (n > 0) channel = 'push'
       }
-    }
-    if (channel) {
-      await admin.from('notification_log').insert({
-        user_id: m.user_id,
-        medication_id: m.id,
-        type: 'estoque_baixo',
-        channel,
-      })
-      summary.lowStock++
+      if (prof.email_enabled) {
+        const { data: u } = await admin.auth.admin.getUserById(m.user_id)
+        if (u.user?.email && (await sendEmail(u.user.email, title, body))) {
+          if (!channel) channel = 'email'
+        }
+      }
+      if (channel) {
+        await admin.from('notification_log').insert({
+          user_id: m.user_id,
+          medication_id: m.id,
+          type: 'estoque_baixo',
+          channel,
+        })
+        summary.lowStock++
+      }
+    } catch (err) {
+      console.error('tick: erro ao avisar estoque baixo', m.id, err)
     }
   }
 

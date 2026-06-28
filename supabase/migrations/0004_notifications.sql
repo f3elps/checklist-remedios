@@ -31,7 +31,10 @@ create table public.notification_log (
   sent_at timestamptz not null default now()
 );
 
-create index notification_log_dose_idx on public.notification_log (dose_id, type);
+-- Único por (dose_id, type): garante idempotência dos lembretes no nível do banco
+-- (dois ticks concorrentes não conseguem logar/avisar a mesma dose duas vezes).
+-- dose_id NULL (avisos de estoque baixo) não conflita — NULLs são distintos no índice único.
+create unique index notification_log_dose_type_uniq on public.notification_log (dose_id, type);
 create index notification_log_med_type_sent_idx on public.notification_log (medication_id, type, sent_at);
 
 alter table public.notification_log enable row level security;

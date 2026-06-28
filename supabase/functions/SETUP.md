@@ -30,9 +30,16 @@ supabase secrets set \
   VAPID_PRIVATE_KEY=<private-key> \
   VAPID_SUBJECT=mailto:voce@seu-email.com \
   RESEND_API_KEY=<resend-api-key> \
-  RESEND_FROM="Cuidi <onboarding@resend.dev>"
+  RESEND_FROM="Cuidi <onboarding@resend.dev>" \
+  CRON_SECRET=<gere-um-valor-aleatorio-longo>
 ```
 `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` já existem no ambiente das funções (injetados pela plataforma) — não precisa setar.
+
+> **`CRON_SECRET`** é um segredo compartilhado só entre o cron e a função: gere um valor aleatório
+> longo (ex.: `openssl rand -hex 32`) e use **o mesmo valor** no `<CRON_SECRET>` do `cron.example.sql`.
+> A função só executa a corrida global se receber o header `x-cron-secret` igual a esse valor — isso
+> impede que qualquer usuário logado dispare o `tick`. O `verify_jwt = true` (fixado em
+> `supabase/config.toml`) garante ainda que a chamada traga um JWT válido.
 
 > Resend free envia de `onboarding@resend.dev` sem domínio próprio. Para usar um remetente seu, verifique um domínio no Resend e troque o `RESEND_FROM`.
 
